@@ -1,51 +1,52 @@
 import requests
-from bs4 import BeautifulSoup
 import json
-from docx import Document
+from bs4 import BeautifulSoup
 
-# Function to download webpage content and parse it
-def parse_page(url):
+# Read URL from the JSON file
+with open("urls.json", "r") as f:
+    data = json.load(f)
+    base_url = data["url"]
+
+# Dictionary to store IDs for each page
+ids_per_page = {}
+
+# Iterate through pages 1 to 50
+for page_num in range(1, 51):
+    # Construct the URL for the current page
+    url = f"{base_url}&pg={page_num}"
+    
+    # Print description of the current URL
+    print(f"Scraping {url}")
+
+    # Send a GET request to the URL
     response = requests.get(url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
-        # Extract the data you need from the parsed HTML
-        # For demonstration purposes, let's say we're extracting the titles of listings
-        listings = [listing.text.strip() for listing in soup.select('.listing-title')]
-        return listings
-    else:
-        print(f"Failed to fetch {url}")
-        return []
 
-# Function to save data to JSON file
-def save_to_json(data, filename):
-    with open(filename, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
+    # Parse the HTML content
+    soup = BeautifulSoup(response.content, "html.parser")
 
-# Function to save data to Word document
-def save_to_word(data, filename):
-    doc = Document()
-    for item in data:
-        doc.add_paragraph(item)
-    doc.save(filename)
+    # Find the div element with class "blogPostListContainer"
+    container = soup.find("div", class_="blogPostListContainer")
 
-# Main function to download content from pages 1 to 50
-def main():
-    base_url = "https://iahip.org/Individual-Classifieds?pg="
-    all_listings = []
+    # Find the ul element with class "boxesList" inside the container
+    ul_element = container.find("ul", class_="boxesList")
 
-    for page_num in range(1, 51):
-        url = base_url + str(page_num)
-        print(f"Downloading page {page_num}...")
-        listings = parse_page(url)
-        all_listings.extend(listings)
+    # Find all li elements with class "boxesListItem" inside the ul_element
+    li_elements = ul_element.find_all("li", class_="boxesListItem")
 
-    # Save data to JSON
-    save_to_json(all_listings, 'listings.json')
+    # List to store IDs for the current page
+    page_ids = []
 
-    # Save data to Word document
-    save_to_word(all_listings, 'listings.docx')
+    # Get the IDs of each li element and add them to the list
+    for li in li_elements:
+        li_id = li.get("id")
+        if li_id:
+            page_ids.append(li_id)
 
-    print("Data downloaded and saved successfully.")
+    # Store IDs for the current page in the dictionary
+    ids_per_page[f"page_{page_num}"] = page_ids
 
-if __name__ == "__main__":
-    main()
+# Save IDs for each page to a JSON file
+with open("ids_per_page.json", "w") as f:
+    json.dump(ids_per_page, f, indent=4)
+
+print("IDs per page saved to ids_per_page.json")
