@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import time
 
 # Create a folder to store HTML files
 if not os.path.exists("html_files"):
@@ -34,3 +35,6 @@ for page, ids in ids_per_page.items():
             html_file.write(response.content)
 
         print(f"HTML content saved to {file_path}")
+
+    # Introduce a 5-second delay before downloading the next page
+    time.sleep(5)
